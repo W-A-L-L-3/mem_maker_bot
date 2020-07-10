@@ -133,4 +133,6 @@ dmypy.json
 /.idea
 
 #TOKEN
-#bottoken.py
+bottoken.py
+
+users/**/
