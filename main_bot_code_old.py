@@ -5,10 +5,6 @@ from shutil import copy  # Ф-ция для копирования файлов
 import telebot  # Модуль для работы с telegram ботами
 import pygame  # Модуль для наложения текста на картинку (в данном случае)
 import pickle  # Модуль для работы с файлами
-import openpyxl  # Модуль для работы с excel файлами
-from openpyxl.styles import Font, Border, Side, Alignment  # Для стилей в excel
-import datetime as dt  # Модуль для получения даты и времени
-
 from bottoken import TOKEN  # Мой токен из файла
 import phrases  # Фразы для диалога
 import constants  # Константные величины
@@ -18,10 +14,6 @@ pygame.init()  # Инициализация модуля pygame
 
 bot = telebot.TeleBot(TOKEN)  # Создаём бота
 
-database_file_name = 'database.xlsx'  # Имя файла с базой данных
-db = openpyxl.load_workbook(filename=database_file_name)  # Файл с базой данных
-database_main_sheet = db['main']  # Еxcel лист с основной таблицей
-
 # Клавиатура да / нет
 yesno_keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2,
                                                    resize_keyboard=True)
@@ -30,8 +22,6 @@ yesno_keyboard.add(telebot.types.KeyboardButton(text="да"),
 
 
 # =====================РАБОТА С ФАЙЛАМИ=======================
-
-
 def read_data_file(chat_id):
     """Открытие файла с пользовательскими данными и выгрузка их в user_data"""
     with open(f"users/{chat_id}/data", 'rb') as data_file:
@@ -67,12 +57,11 @@ def is_2_digit(string):
     return correct, x, y
 
 
+def check(x): return x.isdigit() and 0 <= int(x) <= 255  # Для color_to_rgb
+
+
 def color_to_rgb(color):
     """Проверка строки с rgb кодировкой и перевод цвета в кортеж из 3х знач."""
-
-    def check(x):
-        return x.isdigit() and 0 <= int(x) <= 255
-
     correct = bool(color[0] == "(" and color[-1] == ")" and
                    len(list(filter(check, color[1:-1].split(', ')))) == 3)
     if correct:
@@ -639,74 +628,25 @@ def menu(message):
     main_menu(message.chat.id)  # Показываем главное меню
 
 
-def fill_ceil(r, c, val):
-    """
-    Форматированное заполнение ячейки (r, c) значением val
-    r - номер строки
-    с - номер колонки
-    val - значение, которое нужно записать
-    """
-    global database_main_sheet
-    # На всякий случай обернул в try, не знаю, нужно ли
-    try:
-        database_main_sheet.cell(row=r, column=c).value = val
-        ceil = database_main_sheet.cell(row=r, column=c)
-        ceil.font = Font(size=14)  # Разммер шрифта 14
-        thin = Side(border_style="thin", color="000000")  # Тонкая черная рамка
-        ceil.border = Border(top=thin, left=thin, right=thin, bottom=thin)
-        # Выравнивание текста по левому краю, и по центру по вертикали
-        ceil.alignment = Alignment(horizontal="left", vertical="center")
-    except PermissionError:
-        pass
-
-
-def add_user_to_data_file(q_users, message):
-    """Добавление инфы о пользователе, написавшем боту /start"""
-    database_main_sheet['F1'] = q_users  # Записываем обновлённое кол-во
-    fill_ceil(2 + q_users, 1, q_users)  # Порядковый номер пользователя
-    fill_ceil(2 + q_users, 2, message.from_user.id)
-    fill_ceil(2 + q_users, 3, message.from_user.first_name)
-    fill_ceil(2 + q_users, 4, message.from_user.last_name)
-    fill_ceil(2 + q_users, 5, message.from_user.username)
-    fill_ceil(2 + q_users, 6, dt.datetime.now().date())  # Дата получ. /start
-    fill_ceil(2 + q_users, 7, dt.datetime.now().time())  # Время получ. /start
-
-
 @bot.message_handler(commands=['start'])
 def start(message):
     """
     1) Показываем главное меню
-    2) Добавляем пользователя в базу данных
-    3) Создаём папку пользователя
-    4) Сохраняем туда стандартные настройки
+    2) Создаём папку пользователя
+    3) Сохраняем туда стандартные настройки
     """
-    global database_main_sheet, db, database_file_name
     user_id = message.chat.id  # id пользователя (чата)
-
-    quantity_of_users = int(
-        database_main_sheet['F1'].value)  # Кол-во пользователей из базы
-    users_id_list = [database_main_sheet.cell(row=i, column=2).value
-                     for i in range(3, 3 + quantity_of_users)]
-    if message.chat.id not in users_id_list:  # Если пользователя нет в базе
-        quantity_of_users += 1
-        add_user_to_data_file(quantity_of_users, message)
-
-    # Если файл параллельно открыт, возникает ошибка при сохранении
+    # Создаём персональную папку
     try:
-        db.save(database_file_name)
-    except PermissionError:
-        print('Файл с базой данных параллельно открыт в другом приложении. ' +
-              'Данные не сохранены!')
-
-    # Создаём папки для данного пользователя
-    try:
-        # os.mkdir(f'users/{user_id}')
-        # os.mkdir(f'users/{user_id}/img')
-        os.makedirs(f'users/{user_id}/img')
+        # Папки для данного пользователя
+        os.mkdir(f'users/{user_id}')
+        os.mkdir(f'users/{user_id}/img')
     except OSError:
-        print("Папки этого пользователя уже созданы, либо какая-то ошибка")
+        pass
+        # print("Папки этого пользователя уже созданы, либо какая-то ошибка")
     else:
-        print("Папки успешно создана")
+        pass
+        # print("Папки успешно создана")
 
     # Инициализируем формат пользовательски настроек
     user_data = [0, 0, 0, 0, 0, 0]
@@ -714,7 +654,8 @@ def start(message):
     user_data[1] = 0  # step - номер шага в данном режиме работы бота
     user_data[2] = 0  # active_menu - активное в данный момент меню
     user_data[3] = constants.standard_text_setting  # text_style - стиль текста
-    user_data[4] = constants.standard_text_position  # text_position
+    user_data[
+        4] = constants.standard_text_position  # text_position - позиция текста
     user_data[5] = ''  # source_text - текст, который ввел пользователь
     # Записываем в файл с пользовательскими настройками стандартные настройки
     rewrite_data_file(user_id, user_data)
