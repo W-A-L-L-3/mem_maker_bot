@@ -25,25 +25,38 @@ database_main_sheet = db['main']  # Еxcel лист с основной табл
 # Клавиатура да / нет
 yesno_keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2,
                                                    resize_keyboard=True)
-yesno_keyboard.add(telebot.types.KeyboardButton(text="да"),
-                   telebot.types.KeyboardButton(text="нет"))
+yesno_keyboard.add(telebot.types.KeyboardButton(text=phrases.yes),
+                   telebot.types.KeyboardButton(text=phrases.no))
 
 
 # =====================РАБОТА С ФАЙЛАМИ=======================
 
-
-def read_data_file(chat_id):
+def read_data_file(message):
     """Открытие файла с пользовательскими данными и выгрузка их в user_data"""
-    with open(f"users/{chat_id}/data", 'rb') as data_file:
-        user_data = pickle.load(data_file)
+    try:
+        data_file = open(f"users/{message.chat.id}/data", "rb")
+        reset = False
+    except FileNotFoundError:  # Если файла data данного пользователя нет
+        bot.send_message(message.chat.id, phrases.database_error)
+        start(message)  # Инициализируем пользователя
+        data_file = open(f"users/{message.chat.id}/data", "rb")
+        reset = True
+    user_data = pickle.load(data_file)
+    data_file.close()
     # print('read', chat_id, user_data)  # Вывод для тестов
-    return user_data
+    return user_data, reset
 
 
-def rewrite_data_file(chat_id, user_data):
+def rewrite_data_file(message, user_data):
     """Открытие файла с пользовательскими данными и загрузка в него user_data"""
-    with open(f"users/{chat_id}/data", 'wb') as data_file:
-        pickle.dump(user_data, data_file)
+    try:
+        data_file = open(f"users/{message.chat.id}/data", "wb")
+    except FileNotFoundError:  # Если файла data данного пользователя нет
+        bot.send_message(message.chat.id, phrases.database_error)
+        start(message)  # Инициализируем пользователя
+        data_file = open(f"users/{message.chat.id}/data", "wb")
+    pickle.dump(user_data, data_file)
+    data_file.close()
     # print('rewrite', chat_id, user_data)  # Вывод для тестов
 
 
@@ -117,10 +130,10 @@ def create_mem(chat_id, text, text_style, text_position):
     pygame.image.save(screen, f"users/{chat_id}/img/answer_picture.jpg")
 
 
-def create_mem_with_user_settings(chat_id):
+def create_mem_with_user_settings(message):
     """Создание мема с пользовательскими настройками"""
-    user_data = read_data_file(chat_id)
-    create_mem(chat_id, user_data[5], user_data[3], user_data[4])
+    user_data, reset = read_data_file(message)
+    create_mem(message.chat.id, user_data[5], user_data[3], user_data[4])
 
 
 def send_mem(chat_id):
@@ -185,7 +198,7 @@ def get_font_size(message, user_message, step):
 def get_font_bold(message, user_message, step):
     """Запрос жирности шрифта"""
     # Если ввод некорректен
-    if user_message not in ('да', 'нет'):
+    if user_message not in (phrases.yes, phrases.no):
         bot.send_message(message.chat.id, phrases.invalid_input)
         return -1, step
 
@@ -195,26 +208,26 @@ def get_font_bold(message, user_message, step):
         bot.send_message(message.chat.id, phrases.successful_changes,
                          reply_markup=telebot.types.ReplyKeyboardRemove())
 
-    return True if user_message == 'да' else False, (4 if step == 3 else 0)
+    return user_message == phrases.yes, (4 if step == 3 else 0)
 
 
 def get_font_italic(message, user_message, step):
     """Запрос курсивности (если есть такое слово) шрифта"""
     # Если ввод некорректен
-    if user_message not in ('да', 'нет'):
+    if user_message not in (phrases.yes, phrases.no):
         bot.send_message(message.chat.id, phrases.invalid_input)
         return -1, step, -1
 
     if step == 4:  # Режим полной настройки - след. вопрос
-        bot.send_message(message.chat.id, phrases.successful_changes,
+        bot.send_message(message.chat.id, phrases.ask_text_color,
                          reply_markup=telebot.types.ReplyKeyboardRemove())
         text_color_menu(message.chat.id)
     else:  # Режим индивид. настройки - изменения применены и выкл. yesno клаву
         bot.send_message(message.chat.id, phrases.successful_changes,
                          reply_markup=telebot.types.ReplyKeyboardRemove())
 
-    return (True if user_message == 'да' else False), \
-           (5 if step == 4 else 0), (9 if step == 4 else 10)
+    return user_message == phrases.yes, (5 if step == 4 else 0), \
+           (9 if step == 4 else 10)
 
 
 def get_text_color(message, user_message, step):
@@ -225,7 +238,7 @@ def get_text_color(message, user_message, step):
         bot.send_message(message.chat.id, phrases.invalid_input)
         return -1, step
 
-    if step == 4:  # Режим полной настройки - настройка завершена
+    if step == 5:  # Режим полной настройки - настройка завершена
         bot.send_message(message.chat.id, phrases.font_setting_off)
     else:  # Режим индивидуальной настройки - изменения применены
         bot.send_message(message.chat.id, phrases.successful_changes)
@@ -246,9 +259,9 @@ def rgb_to_name(rgb):
     return convert_dict.get(rgb, phrases.users_color)
 
 
-def get_current_text_style(chat_id):
+def get_current_text_style(message):
     """Получение текущего стиля текста из файла с настройками"""
-    user_data = read_data_file(chat_id)
+    user_data, reset = read_data_file(message)
     text_style = user_data[3]
     ans = "Текущий стиль текста: \n"
     ans += f"Название шрифта: {text_style[0]} \n"
@@ -425,7 +438,9 @@ def main_menu(chat_id):
 def query_handler(call):
     """Обработчик нажатий на кнопки"""
     global yesno_keyboard
-    user_data = read_data_file(call.message.chat.id)
+    user_data, reset = read_data_file(call.message)
+    if reset:  # Если настройки были сброшены, обнуляем нажатие на кнопку
+        call.data = ""
     # Пустое всплывающее сообщение
     bot.answer_callback_query(callback_query_id=call.id, text='')
 
@@ -488,7 +503,7 @@ def query_handler(call):
             user_data[1] = 0
             user_data[2] = 6
             bot.send_message(call.message.chat.id,
-                             text=get_current_text_style(call.message.chat.id))
+                             text=get_current_text_style(call.message))
             set_text_settings_menu(call.message.chat.id)
         elif call.data == 'text_pos_menu_2':  # "Расположение текста вручную"
             user_data[0] = "get_text_pos"
@@ -517,7 +532,7 @@ def query_handler(call):
             change_text_settings_menu(call.message.chat.id)
             user_data[2] = 8
         elif call.data == 'set_text_settings_menu_3':  # "Использовать текущий"
-            create_mem_with_user_settings(call.message.chat.id)
+            create_mem_with_user_settings(call.message)
             send_mem(call.message.chat.id)
             del_user_file(call.message.chat.id, "answer")
             user_data[0] = "None"
@@ -532,9 +547,9 @@ def query_handler(call):
                 user_data[3] = constants.text_setting_packs[pack_num]
                 bot.send_message(call.message.chat.id,
                                  phrases.pack_choice_success)
-            rewrite_data_file(call.message.chat.id, user_data)
+            rewrite_data_file(call.message, user_data)
             bot.send_message(call.message.chat.id,
-                             text=get_current_text_style(call.message.chat.id))
+                             text=get_current_text_style(call.message))
             user_data[2] = 6
             set_text_settings_menu(call.message.chat.id)
 
@@ -588,22 +603,24 @@ def query_handler(call):
         elif call.data == 'text_color_menu_8':
             text_color = constants.color_purple
         elif call.data == 'text_color_menu_9':
+            # Инструкция по вводу цвета в rgb
             with open(f"img/color_scheme.jpg", 'rb') as photo:
                 bot.send_photo(call.message.chat.id, photo,
                                caption=phrases.arbitrary_color_instruction)
-
+        # Если выбран цвет из списка
         if call.data.startswith('text_color_menu_') and int(call.data[-1]) < 9:
             if user_data[0] == "font_settings":
-                user_data[1] = 0
                 user_data[0] = "None"
+                user_data[1] = 0
             user_data[2] = 10
-            cts_finish_menu(call.message.chat.id)
             user_data[3][4] = text_color
+            bot.send_message(call.message.chat.id, phrases.font_setting_off)
+            cts_finish_menu(call.message.chat.id)
 
     elif user_data[2] == 10:  # Меню после выбора способа настройки стиля текста
         if call.data == 'cts_finish_menu_1':
             bot.send_message(call.message.chat.id,
-                             get_current_text_style(call.message.chat.id))
+                             get_current_text_style(call.message))
             set_text_settings_menu(call.message.chat.id)
             user_data[2] = 6
         elif call.data == 'cts_finish_menu_2':
@@ -624,18 +641,18 @@ def query_handler(call):
             bot.send_message(call.message.chat.id, phrases.ask_template_number)
 
     # Перезапись обновлённого списка с настройками пользователя
-    rewrite_data_file(call.message.chat.id, user_data)
+    rewrite_data_file(call.message, user_data)
 
 
 # ======================ОБРАБОТКА КОМАНД========================
 @bot.message_handler(commands=['menu'])
 def menu(message):
     """Показываем главное меню"""
-    user_data = read_data_file(message.chat.id)
+    user_data, reset = read_data_file(message)
     user_data[0] = "None"
     user_data[1] = 0
     user_data[2] = 0  # Активируем главное меню
-    rewrite_data_file(message.chat.id, user_data)
+    rewrite_data_file(message, user_data)
     main_menu(message.chat.id)  # Показываем главное меню
 
 
@@ -700,13 +717,12 @@ def start(message):
 
     # Создаём папки для данного пользователя
     try:
-        # os.mkdir(f'users/{user_id}')
-        # os.mkdir(f'users/{user_id}/img')
         os.makedirs(f'users/{user_id}/img')
     except OSError:
-        print("Папки этого пользователя уже созданы, либо какая-то ошибка")
+        print("Папка этого пользователя уже создана, " +
+              "либо произошла какая-то ошибка")
     else:
-        print("Папки успешно создана")
+        print("Папка успешно создана")
 
     # Инициализируем формат пользовательски настроек
     user_data = [0, 0, 0, 0, 0, 0]
@@ -717,10 +733,11 @@ def start(message):
     user_data[4] = constants.standard_text_position  # text_position
     user_data[5] = ''  # source_text - текст, который ввел пользователь
     # Записываем в файл с пользовательскими настройками стандартные настройки
-    rewrite_data_file(user_id, user_data)
-
+    rewrite_data_file(message, user_data)
+    # Сообщение с приветствием
     bot.send_message(message.chat.id,
-                     text=phrases.first_msg)  # Сообщение с приветствием
+                     text=phrases.first_msg,
+                     reply_markup=telebot.types.ReplyKeyboardRemove())
     main_menu(message.chat.id)  # Показываем главное меню
 
 
@@ -728,7 +745,7 @@ def start(message):
 @bot.message_handler(content_types=['photo'])
 def handle_start_help(message):
     """Обработка всех сообщений с картинкой"""
-    user_data = read_data_file(message.chat.id)
+    user_data, reset = read_data_file(message)
     # Если включен режим получения исходников для мема и нужно считать картинку
     if user_data[0] == "get_source" and user_data[1] == 2:
         file_id = message.photo[-1].file_id
@@ -756,13 +773,15 @@ def handle_start_help(message):
             user_data[1] = 1
             bot.send_message(message.chat.id, phrases.send_mem_text_to_me)
         # Перезапись обновлённого списка с настройками пользователя
-        rewrite_data_file(message.chat.id, user_data)
+        rewrite_data_file(message, user_data)
 
 
 @bot.message_handler(content_types=["text"])
 def processing_all_text_messages(message):
     """Обработка всех текстовых сообщений"""
-    user_data = read_data_file(message.chat.id)
+    user_data, reset = read_data_file(message)
+    if reset:  # Если настройки были сброшены, обнуляем нажатие на кнопку
+        message = "reset"
     user_message = message.text  # Сообщение пользователя
 
     if user_data[0] == "font_settings":  # Режим ввода параметров шрифта
@@ -786,18 +805,18 @@ def processing_all_text_messages(message):
         if user_data[1] == 0:  # Если настройка завершена
             user_data[0] = "None"
             user_data[2] = 6  # Активируем меню завершения настройки текста
-            rewrite_data_file(message.chat.id, user_data)
+            rewrite_data_file(message, user_data)
             bot.send_message(message.chat.id,
-                             text=get_current_text_style(message.chat.id))
+                             text=get_current_text_style(message))
             set_text_settings_menu(message.chat.id)
 
     elif user_data[0] == "get_source":  # Режим получения исходников для мема
         if user_data[1] == 1:
             if 0 <= len(user_message) <= constants.max_mem_text_len:
-                user_data[5] = user_message
                 user_data[0] = "None"
                 user_data[1] = 0
                 user_data[2] = 4
+                user_data[5] = user_message
                 text_pos_menu(message.chat.id)
             else:
                 bot.send_message(message.chat.id,
@@ -845,7 +864,7 @@ def processing_all_text_messages(message):
                         user_data[4][0] = "percent"
                     bot.send_message(
                         message.chat.id,
-                        text=get_current_text_style(message.chat.id))
+                        text=get_current_text_style(message))
                     set_text_settings_menu(message.chat.id)
                 else:
                     bot.send_message(
@@ -894,9 +913,10 @@ def processing_all_text_messages(message):
             bot.send_message(message.chat.id, text=phrases.invalid_input)
 
     else:  # Если введено непонятно что
-        bot.send_message(message.chat.id, phrases.not_understand)
+        if message != "reset":  # Если данные не были сброшены
+            bot.send_message(message.chat.id, phrases.not_understand)
 
-    rewrite_data_file(message.chat.id, user_data)
+    rewrite_data_file(message, user_data)
 
 
 if __name__ == '__main__':  # Запуск
