@@ -1,71 +1,25 @@
 # Главный код бота
 
-import os  # Модуль для создания и удаления папок (в данном случае)
-from shutil import copy  # Ф-ция для копирования файлов
 import telebot  # Модуль для работы с telegram ботами
-import pygame  # Модуль для наложения текста на картинку (в данном случае)
-import pickle  # Модуль для работы с файлами
-import openpyxl  # Модуль для работы с excel файлами
-from openpyxl.styles import Font, Border, Side, Alignment  # Для стилей в excel
-import datetime as dt  # Модуль для получения даты и времени
+
+import mmbdatabase  # Модуль для работы с базой данных
+import mmbpicture  # Модуль для создания мема
+import mmbfiles  # Модуль для работы с файлами
 
 from bottoken import TOKEN  # Мой токен из файла
 import phrases  # Фразы для диалога
 import constants  # Константные величины
 import names  # Файл с названиями пикч и шаблонов
 
-pygame.init()  # Инициализация модуля pygame
-
 bot = telebot.TeleBot(TOKEN)  # Создаём бота
 
-database_file_name = 'database.xlsx'  # Имя файла с базой данных
-db = openpyxl.load_workbook(filename=database_file_name)  # Файл с базой данных
-database_main_sheet = db['main']  # Еxcel лист с основной таблицей
+database = mmbdatabase.Database(file_name="database.xlsx")  # Объект базы
 
 # Клавиатура да / нет
 yesno_keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2,
                                                    resize_keyboard=True)
 yesno_keyboard.add(telebot.types.KeyboardButton(text=phrases.yes),
                    telebot.types.KeyboardButton(text=phrases.no))
-
-
-# =====================РАБОТА С ФАЙЛАМИ=======================
-
-def read_data_file(message):
-    """Открытие файла с пользовательскими данными и выгрузка их в user_data"""
-    try:
-        data_file = open(f"users/{message.chat.id}/data", "rb")
-        reset = False
-    except FileNotFoundError:  # Если файла data данного пользователя нет
-        bot.send_message(message.chat.id, phrases.database_error)
-        start(message)  # Инициализируем пользователя
-        data_file = open(f"users/{message.chat.id}/data", "rb")
-        reset = True
-    user_data = pickle.load(data_file)
-    data_file.close()
-    # print('read', chat_id, user_data)  # Вывод для тестов
-    return user_data, reset
-
-
-def rewrite_data_file(message, user_data):
-    """Открытие файла с пользовательскими данными и загрузка в него user_data"""
-    try:
-        data_file = open(f"users/{message.chat.id}/data", "wb")
-    except FileNotFoundError:  # Если файла data данного пользователя нет
-        bot.send_message(message.chat.id, phrases.database_error)
-        start(message)  # Инициализируем пользователя
-        data_file = open(f"users/{message.chat.id}/data", "wb")
-    pickle.dump(user_data, data_file)
-    data_file.close()
-    # print('rewrite', chat_id, user_data)  # Вывод для тестов
-
-
-def del_user_file(chat_id, name):
-    """
-    Удаление файла пользователя (answer или source, в зависимости от name)
-    name - answer / source
-    """
-    os.remove(f"users/{chat_id}/img/{name}_picture.jpg")
 
 
 # =====================ФУНКЦИИ=======================
@@ -95,45 +49,10 @@ def color_to_rgb(color):
     return correct, rgb
 
 
-# ======================PYGAME========================
-def create_mem(chat_id, text, text_style, text_position):
-    """
-    Наложение текста с заданным пользователем стилем на тестовую картинку.
-    chat_id - id пользователя / чата
-    text - текст, который будет отрисован
-    font_style - список со стилем текста (название, размер, жирность, курсив)
-    text_color - цвет текста в rgb
-    text_position - позиция текста в формате (format, x, y),
-        format - рх / percent, x и y - координаты текста в int
-    """
-    font = pygame.font.SysFont(*text_style[:-1])  # Создание шрифта
-    text_object = font.render(text, 1, text_style[-1])  # Объект текста
-    image = pygame.image.load(f"users/{chat_id}/img/source_picture.jpg")
-    size = image.get_size()  # Размеры картинки
-    screen = pygame.Surface(size)  # Рабочее поле с размерами картинки
-
-    coords_format, x, y = text_position  # Распаковываем text_position
-    if coords_format == "px":  # Если x и y заданы в px
-        # i, j = x - text_object.get_width(), y - text_object.get_height()
-        i, j = x, y  # Координаты верхнего левого угла текста
-    elif coords_format == "percent":  # Если x и y заданы в %
-        # Координаты центра текста
-        i = (size[0] * x) // 100 - text_object.get_width() // 2
-        j = (size[1] * y) // 100 - text_object.get_height() // 2
-    else:  # Если произошла какая-то ошибка, format != "px" или "percent"
-        raise ValueError("Ошибка в формате координат")
-
-    image.blit(text_object, (i, j))  # Отрисовка текста на картинке
-    screen.blit(image, (0, 0))  # Картинка на всё рабочее поле
-
-    # Сохраняем всё рабочее поле в новый файл
-    pygame.image.save(screen, f"users/{chat_id}/img/answer_picture.jpg")
-
-
 def create_mem_with_user_settings(message):
     """Создание мема с пользовательскими настройками"""
-    user_data, reset = read_data_file(message)
-    create_mem(message.chat.id, user_data[5], user_data[3], user_data[4])
+    data, reset = mmbfiles.read_data(message, bot.send_message, start)
+    mmbpicture.create_mem(message.chat.id, data[5], data[3], data[4])
 
 
 def send_mem(chat_id):
@@ -152,17 +71,11 @@ def send_picture(chat_id, folder_name, name):
         bot.send_photo(chat_id, photo)
 
 
-def get_user_img_size(chat_id):
-    """Получение размеров отправленной пользователем картинки"""
-    image = pygame.image.load(f"users/{chat_id}/img/source_picture.jpg")
-    return image.get_size()
-
-
 # ======================ЗАПРОСЫ ПАРАМЕТРОВ ТЕКСТА========================
 def get_font_name(message, user_message, step):
     """Запрос названия шрифта"""
     # Есть ли введённого шрифта нет в наборе шрифтов pygame
-    if user_message not in pygame.font.get_fonts():
+    if user_message not in mmbpicture.pygame_fonts:
         bot.send_message(message.chat.id, phrases.invalid_font_name)
         return -1, step
 
@@ -261,7 +174,7 @@ def rgb_to_name(rgb):
 
 def get_current_text_style(message):
     """Получение текущего стиля текста из файла с настройками"""
-    user_data, reset = read_data_file(message)
+    user_data, reset = mmbfiles.read_data(message, bot.send_message, start)
     text_style = user_data[3]
     ans = "Текущий стиль текста: \n"
     ans += f"Название шрифта: {text_style[0]} \n"
@@ -438,7 +351,7 @@ def main_menu(chat_id):
 def query_handler(call):
     """Обработчик нажатий на кнопки"""
     global yesno_keyboard
-    user_data, reset = read_data_file(call.message)
+    user_data, reset = mmbfiles.read_data(call.message, bot.send_message, start)
     if reset:  # Если настройки были сброшены, обнуляем нажатие на кнопку
         call.data = ""
     # Пустое всплывающее сообщение
@@ -456,9 +369,8 @@ def query_handler(call):
 
     elif user_data[2] == 1:  # Меню выбора источника изображения для мема
         if call.data == 'picture_source_menu_1':  # Пункт "Предыдущее"
-            prev_pict = f"users/{call.message.chat.id}/img/source_picture.jpg"
-            is_ok = os.path.exists(prev_pict)  # Предыдущее существует?
-            if is_ok:  # Если да
+            # Проверка на то, существует ли предыдущее изображение
+            if mmbfiles.check_previous_img(call.message.chat.id):
                 user_data[0] = "get_source"  # Актив. режим получения исходников
                 user_data[1] = 1  # Переходим к вводу текста пользователем
                 user_data[2] = -1  # Блокируем все меню
@@ -475,8 +387,8 @@ def query_handler(call):
             user_data[0] = "send_template"  # Активируем режим выбора шаблона
             user_data[2] = -1  # Блокируем все меню
         elif call.data == 'picture_source_menu_3':  # Пункт "Загрузить новое"
-            del_user_file(call.message.chat.id,
-                          "source")  # Удаляем старый исходник
+            mmbfiles.del_user_img(call.message.chat.id,
+                                  "source")  # Удаляем старый исходник
             user_data[0] = "get_source"  # Актив. режим получения исходников
             user_data[1] = 2  # Ввод текста и картинки пользователем
             user_data[2] = -1  # Блокируем все меню
@@ -534,7 +446,7 @@ def query_handler(call):
         elif call.data == 'set_text_settings_menu_3':  # "Использовать текущий"
             create_mem_with_user_settings(call.message)
             send_mem(call.message.chat.id)
-            del_user_file(call.message.chat.id, "answer")
+            mmbfiles.del_user_img(call.message.chat.id, "answer")
             user_data[0] = "None"
             user_data[1] = 0
             user_data[2] = 0
@@ -547,7 +459,8 @@ def query_handler(call):
                 user_data[3] = constants.text_setting_packs[pack_num]
                 bot.send_message(call.message.chat.id,
                                  phrases.pack_choice_success)
-            rewrite_data_file(call.message, user_data)
+            mmbfiles.rewrite_data(call.message, user_data, bot.send_message,
+                                  start)
             bot.send_message(call.message.chat.id,
                              text=get_current_text_style(call.message))
             user_data[2] = 6
@@ -641,52 +554,19 @@ def query_handler(call):
             bot.send_message(call.message.chat.id, phrases.ask_template_number)
 
     # Перезапись обновлённого списка с настройками пользователя
-    rewrite_data_file(call.message, user_data)
+    mmbfiles.rewrite_data(call.message, user_data, bot.send_message, start)
 
 
 # ======================ОБРАБОТКА КОМАНД========================
 @bot.message_handler(commands=['menu'])
 def menu(message):
     """Показываем главное меню"""
-    user_data, reset = read_data_file(message)
+    user_data, reset = mmbfiles.read_data(message, bot.send_message, start)
     user_data[0] = "None"
     user_data[1] = 0
     user_data[2] = 0  # Активируем главное меню
-    rewrite_data_file(message, user_data)
+    mmbfiles.rewrite_data(message, user_data, bot.send_message, start)
     main_menu(message.chat.id)  # Показываем главное меню
-
-
-def fill_ceil(r, c, val):
-    """
-    Форматированное заполнение ячейки (r, c) значением val
-    r - номер строки
-    с - номер колонки
-    val - значение, которое нужно записать
-    """
-    global database_main_sheet
-    # На всякий случай обернул в try, не знаю, нужно ли
-    try:
-        database_main_sheet.cell(row=r, column=c).value = val
-        ceil = database_main_sheet.cell(row=r, column=c)
-        ceil.font = Font(size=14)  # Разммер шрифта 14
-        thin = Side(border_style="thin", color="000000")  # Тонкая черная рамка
-        ceil.border = Border(top=thin, left=thin, right=thin, bottom=thin)
-        # Выравнивание текста по левому краю, и по центру по вертикали
-        ceil.alignment = Alignment(horizontal="left", vertical="center")
-    except PermissionError:
-        pass
-
-
-def add_user_to_data_file(q_users, message):
-    """Добавление инфы о пользователе, написавшем боту /start"""
-    database_main_sheet['F1'] = q_users  # Записываем обновлённое кол-во
-    fill_ceil(2 + q_users, 1, q_users)  # Порядковый номер пользователя
-    fill_ceil(2 + q_users, 2, message.from_user.id)
-    fill_ceil(2 + q_users, 3, message.from_user.first_name)
-    fill_ceil(2 + q_users, 4, message.from_user.last_name)
-    fill_ceil(2 + q_users, 5, message.from_user.username)
-    fill_ceil(2 + q_users, 6, dt.datetime.now().date())  # Дата получ. /start
-    fill_ceil(2 + q_users, 7, dt.datetime.now().time())  # Время получ. /start
 
 
 @bot.message_handler(commands=['start'])
@@ -697,32 +577,12 @@ def start(message):
     3) Создаём папку пользователя
     4) Сохраняем туда стандартные настройки
     """
-    global database_main_sheet, db, database_file_name
+    global database
     user_id = message.chat.id  # id пользователя (чата)
 
-    quantity_of_users = int(
-        database_main_sheet['F1'].value)  # Кол-во пользователей из базы
-    users_id_list = [database_main_sheet.cell(row=i, column=2).value
-                     for i in range(3, 3 + quantity_of_users)]
-    if message.chat.id not in users_id_list:  # Если пользователя нет в базе
-        quantity_of_users += 1
-        add_user_to_data_file(quantity_of_users, message)
+    database.new_user(message)  # Обработка навого пользователя в базе данных
 
-    # Если файл параллельно открыт, возникает ошибка при сохранении
-    try:
-        db.save(database_file_name)
-    except PermissionError:
-        print('Файл с базой данных параллельно открыт в другом приложении. ' +
-              'Данные не сохранены!')
-
-    # Создаём папки для данного пользователя
-    try:
-        os.makedirs(f'users/{user_id}/img')
-    except OSError:
-        print("Папка этого пользователя уже создана, " +
-              "либо произошла какая-то ошибка")
-    else:
-        print("Папка успешно создана")
+    mmbfiles.add_user_folder(user_id)  # Создание папки для данного пользователя
 
     # Инициализируем формат пользовательски настроек
     user_data = [0, 0, 0, 0, 0, 0]
@@ -733,7 +593,7 @@ def start(message):
     user_data[4] = constants.standard_text_position  # text_position
     user_data[5] = ''  # source_text - текст, который ввел пользователь
     # Записываем в файл с пользовательскими настройками стандартные настройки
-    rewrite_data_file(message, user_data)
+    mmbfiles.rewrite_data(message, user_data, bot.send_message, start)
     # Сообщение с приветствием
     bot.send_message(message.chat.id,
                      text=phrases.first_msg,
@@ -745,7 +605,7 @@ def start(message):
 @bot.message_handler(content_types=['photo'])
 def handle_start_help(message):
     """Обработка всех сообщений с картинкой"""
-    user_data, reset = read_data_file(message)
+    user_data, reset = mmbfiles.read_data(message, bot.send_message, start)
     # Если включен режим получения исходников для мема и нужно считать картинку
     if user_data[0] == "get_source" and user_data[1] == 2:
         file_id = message.photo[-1].file_id
@@ -773,13 +633,13 @@ def handle_start_help(message):
             user_data[1] = 1
             bot.send_message(message.chat.id, phrases.send_mem_text_to_me)
         # Перезапись обновлённого списка с настройками пользователя
-        rewrite_data_file(message, user_data)
+        mmbfiles.rewrite_data(message, user_data, bot.send_message, start)
 
 
 @bot.message_handler(content_types=["text"])
 def processing_all_text_messages(message):
     """Обработка всех текстовых сообщений"""
-    user_data, reset = read_data_file(message)
+    user_data, reset = mmbfiles.read_data(message, bot.send_message, start)
     if reset:  # Если настройки были сброшены, обнуляем нажатие на кнопку
         message = "reset"
     user_message = message.text  # Сообщение пользователя
@@ -805,7 +665,7 @@ def processing_all_text_messages(message):
         if user_data[1] == 0:  # Если настройка завершена
             user_data[0] = "None"
             user_data[2] = 6  # Активируем меню завершения настройки текста
-            rewrite_data_file(message, user_data)
+            mmbfiles.rewrite_data(message, user_data, bot.send_message, start)
             bot.send_message(message.chat.id,
                              text=get_current_text_style(message))
             set_text_settings_menu(message.chat.id)
@@ -828,24 +688,25 @@ def processing_all_text_messages(message):
             if user_message == phrases.set_text_pos_in_px:
                 bot.send_message(
                     message.chat.id,
-                    phrases.user_pict_size(get_user_img_size(message.chat.id)))
+                    phrases.user_pict_size(
+                        mmbpicture.get_img_size(message.chat.id)))
 
                 bot.send_message(
                     message.chat.id,
-                    phrases.send_text_pos_to_me + "px",
+                    phrases.send_text_pos_in_px,
                     reply_markup=telebot.types.ReplyKeyboardRemove())
                 user_data[1] = 2
             elif user_message == phrases.set_text_pos_in_percents:
                 bot.send_message(
                     message.chat.id,
-                    phrases.send_text_pos_to_me + "%",
+                    phrases.send_text_pos_in_per,
                     reply_markup=telebot.types.ReplyKeyboardRemove())
                 user_data[1] = 3
             else:
                 bot.send_message(message.chat.id, phrases.invalid_input)
 
         elif user_data[1] in (2, 3):
-            x_max, y_max = get_user_img_size(message.chat.id)
+            x_max, y_max = mmbpicture.get_img_size(message.chat.id)
             correct, x, y = is_2_digit(user_message)
             if correct:
                 in_px = user_data[1] == 2 and (0 < x < x_max and 0 < y < y_max)
@@ -904,8 +765,9 @@ def processing_all_text_messages(message):
             template_name = template[template.find(' ') + 1:]
             bot.send_message(message.chat.id, text=template_name)
             send_picture(message.chat.id, "templates", template_name[:-1])
-            copy(f'img/templates/{template_name[:-1]}.jpg',
-                 f'users/{message.chat.id}/img/source_picture.jpg')
+            # Копируем шаблон в папку пользователя
+            mmbfiles.copy_to_user_folder(template_name[:-1], message.chat.id)
+
             user_data[2] = 11
             user_data[0] = "None"
             send_template_finish_menu(message.chat.id)
@@ -916,7 +778,7 @@ def processing_all_text_messages(message):
         if message != "reset":  # Если данные не были сброшены
             bot.send_message(message.chat.id, phrases.not_understand)
 
-    rewrite_data_file(message, user_data)
+    mmbfiles.rewrite_data(message, user_data, bot.send_message, start)
 
 
 if __name__ == '__main__':  # Запуск

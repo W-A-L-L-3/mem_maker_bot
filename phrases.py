@@ -15,7 +15,6 @@ ask_font_bold = "Сделать текст жирным?"
 ask_font_italic = "Сделать текст курсивом?"
 ask_text_color = "Выберите цвет текста"
 
-
 successful_changes = "✅ Изменение успешно применено"
 invalid_input = "❌ Некорректный ввод"
 invalid_font_name = "Этот шрифт недоступен"
@@ -89,10 +88,11 @@ available_packs = "Доступные пакеты:"
 
 send_picture_to_me = "Отправьте картинку и текст, который необходимо на неё наложить"
 send_mem_text_to_me = "Введите текст, который будет наложен на картинку"
-send_mem_text_to_me_2 = send_mem_text_to_me +  " ещё раз"
+send_mem_text_to_me_2 = send_mem_text_to_me + " ещё раз"
 sending_picture_to_client = "Отправляем готовый мем"
 
-send_text_pos_to_me = "Введите координаты по горизонтали и по вертикали для середины текста через пробел, в "
+send_text_pos_in_px = "Введите координаты по горизонтали и по вертикали для верхнего левого угла текста через пробел, в px"
+send_text_pos_in_per = "Введите координаты по горизонтали и по вертикали для середины текста через пробел, в %"
 
 # Меню выбора пакета настроек
 pack_choice_title = "Выберите пакет настроек:"
@@ -108,11 +108,14 @@ set_text_pos_in_percents = "Относительно, в %"
 successful_input = "Ответ принят"
 pos_out_of_range = "Выход за границу изображения"
 
+
 def max_text_len_info(text_len):
     return f"Макс. длина текста {text_len} симв."
 
+
 def user_pict_size(size):
     return f"Размеры Вашей картинки {size}, в px"
+
 
 not_understand = "Не понял. Напишите /menu, чтобы активировать главное меню бота"
 
