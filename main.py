@@ -290,8 +290,9 @@ def picture_source_menu(chat_id):
 
 def picture_search_message(chat_id):
     """Режим поиска пикчи по названию"""
+    # Просьба ввести номер пикчи
     bot.send_message(
-        chat_id, text=phrases.ask_picture_number)  # Просьба ввести номер пикчи
+        chat_id, text=phrases.ask_picture_number(names.quantity_of_pictures))
     msg = ''
     for name in names.pictures:
         msg += name
@@ -300,7 +301,8 @@ def picture_search_message(chat_id):
 
 def template_search_message(chat_id):
     """Вывод списка названий шаблонов"""
-    bot.send_message(chat_id, text=phrases.ask_template_number)
+    bot.send_message(
+        chat_id, text=phrases.ask_template_number(names.quantity_of_templates))
     msg = ''
     for name in names.templates:
         msg += name
@@ -402,7 +404,9 @@ def query_handler(call):
         if call.data == 'send_picture_finish_menu_1':  # "Получить ещё пикчу"
             user_data[0] = "send_picture"
             user_data[2] = -1
-            bot.send_message(call.message.chat.id, phrases.ask_picture_number)
+            bot.send_message(
+                call.message.chat.id,
+                phrases.ask_picture_number(names.quantity_of_pictures))
         elif call.data == 'send_picture_finish_menu_2':  # Пункт "Главное меню"
             user_data[2] = 0
             user_data[0] = "None"
@@ -551,7 +555,9 @@ def query_handler(call):
         elif call.data == "send_template_finish_menu_2":
             user_data[2] = -1
             user_data[0] = "send_template"
-            bot.send_message(call.message.chat.id, phrases.ask_template_number)
+            bot.send_message(
+                call.message.chat.id,
+                phrases.ask_template_number(names.quantity_of_templates))
 
     # Перезапись обновлённого списка с настройками пользователя
     mmbfiles.rewrite_data(call.message, user_data, bot.send_message, start)

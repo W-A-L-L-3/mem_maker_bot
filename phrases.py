@@ -73,9 +73,6 @@ all_settings_title = "Настройки"
 all_settings_list = ["Настройки стиля текста",
                      "↩ Вернуться в главное меню"]
 
-ask_picture_number = "Введите число от 1 до 99 - номер пикчи"
-ask_template_number = "Введите число от 1 до 103 - номер шаблона"
-
 cts_finish_menu_continue = "➡ Продолжить настройку"
 use_this_template = "✅ Использовать этот шаблон"
 choose_another_template = "🔄 Выбрать другой"
@@ -107,6 +104,14 @@ set_text_pos_in_percents = "Относительно, в %"
 # Ответы на ввод
 successful_input = "Ответ принят"
 pos_out_of_range = "Выход за границу изображения"
+
+
+def ask_picture_number(quantity_of_pictures):
+    return f"Введите число от 1 до {quantity_of_pictures} - номер пикчи"
+
+
+def ask_template_number(quantity_of_templates):
+    return f"Введите число от 1 до {quantity_of_templates} - номер шаблона"
 
 
 def max_text_len_info(text_len):
