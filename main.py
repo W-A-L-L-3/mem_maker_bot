@@ -186,19 +186,6 @@ def get_current_text_style(message):
 
 
 # ======================МЕНЮ========================
-def cts_finish_menu(chat_id):
-    """Меню после настройки текста вручную"""
-    ctsf_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline клаву
-    # Добавляем все ф-ции в меню
-    ctsf_menu.add(telebot.types.InlineKeyboardButton(
-        text=phrases.cts_finish_menu_continue,
-        callback_data='cts_finish_menu_1'))
-    ctsf_menu.add(telebot.types.InlineKeyboardButton(
-        text=phrases.back_to_main,
-        callback_data='cts_finish_menu_2'))
-    # Отправляем сообщение с инфой о меню и списком ф-ций
-    bot.send_message(chat_id, text=phrases.next_step, reply_markup=ctsf_menu)
-
 
 def text_color_menu(chat_id):
     """Меню настройки цвета текста"""
@@ -310,7 +297,7 @@ def template_search_message(chat_id):
 
 
 def send_picture_finish_menu(chat_id):
-    """Меню после настройки текста вручную"""
+    """Меню после отправки пикчи"""
     sp_f_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline клаву
     # Добавляем все ф-ции в меню
     sp_f_menu.add(telebot.types.InlineKeyboardButton(
@@ -324,7 +311,7 @@ def send_picture_finish_menu(chat_id):
 
 
 def send_template_finish_menu(chat_id):
-    """Меню после настройки текста вручную"""
+    """Меню после отправки шаблона"""
     st_f_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline клаву
     # Добавляем все ф-ции в меню
     st_f_menu.add(telebot.types.InlineKeyboardButton(
@@ -396,9 +383,6 @@ def query_handler(call):
             user_data[2] = -1  # Блокируем все меню
             # Просьба отправить текст и картинку для мема
             bot.send_message(call.message.chat.id, phrases.send_picture_to_me)
-        elif call.data == 'picture_source_menu_4':  # Пункт "Главное меню"
-            user_data[2] = 0
-            main_menu(call.message.chat.id)
 
     elif user_data[2] == 2:  # Mеню после получения пикчи
         if call.data == 'send_picture_finish_menu_1':  # "Получить ещё пикчу"
@@ -435,11 +419,6 @@ def query_handler(call):
             bot.send_message(call.message.chat.id,
                              text=phrases.set_text_pos_title,
                              reply_markup=percent_px_keyboard)
-        elif call.data == 'text_pos_menu_3':  # Пункт "Вернуться в главное меню"
-            user_data[0] = "None"
-            user_data[1] = 0
-            user_data[2] = 0
-            main_menu(call.message.chat.id)
     elif user_data[2] == 6:  # Меню выбора способа настройки стиля текста
         if call.data == 'set_text_settings_menu_1':  # Пункт "Выбрать пакет"
             pack_choice_menu(call.message.chat.id)
@@ -497,9 +476,6 @@ def query_handler(call):
             user_data[2] = 9
             user_data[1] = 10
             text_color_menu(call.message.chat.id)
-        elif call.data == 'change_text_settings_menu_7':
-            main_menu(call.message.chat.id)
-            user_data[2] = 0
 
     elif user_data[2] == 9:  # Если активно меню выбора цвета
         text_color = constants.color_black
@@ -529,22 +505,14 @@ def query_handler(call):
             if user_data[0] == "font_settings":
                 user_data[0] = "None"
                 user_data[1] = 0
-            user_data[2] = 10
+            user_data[2] = 6
             user_data[3][4] = text_color
-            bot.send_message(call.message.chat.id, phrases.font_setting_off)
-            cts_finish_menu(call.message.chat.id)
-
-    elif user_data[2] == 10:  # Меню после выбора способа настройки стиля текста
-        if call.data == 'cts_finish_menu_1':
+            # bot.send_message(call.message.chat.id, phrases.font_setting_off)
+            mmbfiles.rewrite_data(call.message, user_data, bot.send_message,
+                                  start)
             bot.send_message(call.message.chat.id,
                              get_current_text_style(call.message))
             set_text_settings_menu(call.message.chat.id)
-            user_data[2] = 6
-        elif call.data == 'cts_finish_menu_2':
-            user_data[0] = "None"
-            user_data[1] = 0
-            user_data[2] = 0
-            main_menu(call.message.chat.id)
 
     elif user_data[2] == 11:  # Меню выбора шаблона
         if call.data == "send_template_finish_menu_1":
