@@ -75,7 +75,9 @@ def send_picture(chat_id, folder_name, name):
 def get_font_name(message, user_message, step):
     """Запрос названия шрифта"""
     # Есть ли введённого шрифта нет в наборе шрифтов pygame
-    if user_message not in mmbpicture.pygame_fonts:
+    if user_message.isdigit() and 1 <= int(user_message) <= 20:
+        user_message = mmbpicture.pygame_fonts[int(user_message) - 1]
+    elif user_message not in mmbpicture.pygame_fonts:
         bot.send_message(message.chat.id, phrases.invalid_font_name)
         return -1, step
 
@@ -347,6 +349,18 @@ def main_menu(chat_id):
     bot.send_message(chat_id, text=phrases.main_menu_title, reply_markup=m_menu)
 
 
+def create_keyboard(type):
+    """Создание инлайн панелей"""
+    keyboard = telebot.types.InlineKeyboardMarkup()
+    if type == "Просмотр доступных шрифтов":
+        keyboard.add(
+            telebot.types.InlineKeyboardButton(text="Просмотр доступных шрифтов",
+                                               callback_data=f'for_show_font_names'))
+    else:
+        print("Ошибка: Клавиатура не создана успешно")
+    return keyboard
+
+
 @bot.callback_query_handler(func=lambda call: True)
 def query_handler(call):
     """Обработчик нажатий на кнопки"""
@@ -472,12 +486,21 @@ def query_handler(call):
             if call.data[-1] != '7':
                 user_data[0] = "font_settings"
         if call.data == 'change_text_settings_menu_1':
+            for_show_font_names = create_keyboard("Просмотр доступных шрифтов")
             bot.send_message(call.message.chat.id, phrases.font_setting_on)
-            bot.send_message(call.message.chat.id, phrases.ask_font_name)
+            bot.send_message(call.message.chat.id,
+                             f"{phrases.ask_font_name}\nИли нажмите ниже, чтобы посмотреть\n какие доступны шрифты",
+                             reply_markup=for_show_font_names)
+
             user_data[1] = 1
+            user_data[2] = 12
         elif call.data == 'change_text_settings_menu_2':
-            bot.send_message(call.message.chat.id, phrases.ask_font_name)
+            for_show_font_names = create_keyboard("Просмотр доступных шрифтов")
+            bot.send_message(call.message.chat.id,
+                             f"{phrases.ask_font_name}\nИли нажмите ниже, чтобы посмотреть\n какие доступны шрифты",
+                             reply_markup=for_show_font_names)
             user_data[1] = 6
+            user_data[2] = 12
         elif call.data == 'change_text_settings_menu_3':
             bot.send_message(call.message.chat.id, phrases.ask_font_size)
             user_data[1] = 7
@@ -552,6 +575,13 @@ def query_handler(call):
             user_data[2] = -1
             user_data[0] = "send_template"
             bot.send_message(call.message.chat.id, phrases.ask_template_number)
+    elif user_data[2] == 12:
+        if call.data == "for_show_font_names":  # Меню выбора шаблона
+            message = "Также можете ввести номер желаемого шрифта"
+            for i in range(20):
+                message += f'{i+1}) {mmbpicture.pygame_fonts[i]}\n'
+            print(len(message))
+            bot.send_message(call.message.chat.id, text=message)
 
     # Перезапись обновлённого списка с настройками пользователя
     mmbfiles.rewrite_data(call.message, user_data, bot.send_message, start)
