@@ -74,10 +74,19 @@ def send_picture(chat_id, folder_name, name):
 # ======================ЗАПРОСЫ ПАРАМЕТРОВ ТЕКСТА========================
 def get_font_name(message, user_message, step):
     """Запрос названия шрифта"""
-    # Есть ли введённого шрифта нет в наборе шрифтов pygame
-    if user_message not in mmbpicture.pygame_fonts:
+    # Есть ли введённого шрифта нет в наборе шрифтов pygame, или шрифт задан
+    # некорректным номером из списка шрифтов
+    not_name = (not user_message.isdigit() and
+                user_message not in mmbpicture.pygame_fonts)
+    not_num = (user_message.isdigit() and
+               not (1 <= int(user_message) <= constants.quantity_of_fonts))
+    if not_name or not_num:  # Не название шрифта и не номер из списка
         bot.send_message(message.chat.id, phrases.invalid_font_name)
         return -1, step
+
+    # Если шрифт задан номером, преобразуем сообщение польз. в название шрифта
+    if user_message.isdigit():
+        user_message = mmbpicture.pygame_fonts[int(user_message) - 1]
 
     if step == 1:  # Режим полной настройки - след. вопрос
         bot.send_message(message.chat.id, phrases.ask_font_size)
@@ -275,6 +284,15 @@ def picture_source_menu(chat_id):
                      reply_markup=create_mem_menu)
 
 
+def show_fonts_button(chat_id):
+    """Просьба ввести название шрифта и кнопка "Показать доступные шрифты" """
+    sf_button = telebot.types.InlineKeyboardMarkup()
+    sf_button.add(telebot.types.InlineKeyboardButton(
+        text=phrases.available_fonts_list, callback_data='show_fonts_list'))
+    bot.send_message(chat_id, text=phrases.ask_font_name_or_num,
+                     reply_markup=sf_button)
+
+
 def picture_search_message(chat_id):
     """Режим поиска пикчи по названию"""
     # Просьба ввести номер пикчи
@@ -456,11 +474,13 @@ def query_handler(call):
                 user_data[0] = "font_settings"
         if call.data == 'change_text_settings_menu_1':
             bot.send_message(call.message.chat.id, phrases.font_setting_on)
-            bot.send_message(call.message.chat.id, phrases.ask_font_name)
+            show_fonts_button(call.message.chat.id)  # Запрос имени шрифта
             user_data[1] = 1
+            user_data[2] = 10  # Кнопка "Показать список доступных шрифтов"
         elif call.data == 'change_text_settings_menu_2':
-            bot.send_message(call.message.chat.id, phrases.ask_font_name)
+            show_fonts_button(call.message.chat.id)  # Запрос имени шрифта
             user_data[1] = 6
+            user_data[2] = 10  # Кнопка "Показать список доступных шрифтов"
         elif call.data == 'change_text_settings_menu_3':
             bot.send_message(call.message.chat.id, phrases.ask_font_size)
             user_data[1] = 7
@@ -514,6 +534,13 @@ def query_handler(call):
                              get_current_text_style(call.message))
             set_text_settings_menu(call.message.chat.id)
 
+    elif user_data[2] == 10:
+        if call.data == "show_fonts_list":  # Кнопка "показать доступные шрифты"
+            message = f"{phrases.available_fonts_list}:\n"
+            for i in range(constants.quantity_of_fonts):  # Первые n шрифтов
+                message += f"{i + 1}) {mmbpicture.pygame_fonts[i]}\n"
+            bot.send_message(call.message.chat.id, text=message)
+
     elif user_data[2] == 11:  # Меню выбора шаблона
         if call.data == "send_template_finish_menu_1":
             user_data[0] = "get_source"
@@ -553,11 +580,8 @@ def start(message):
     """
     global database
     user_id = message.chat.id  # id пользователя (чата)
-
     database.new_user(message)  # Обработка навого пользователя в базе данных
-
     mmbfiles.add_user_folder(user_id)  # Создание папки для данного пользователя
-
     # Инициализируем формат пользовательски настроек
     user_data = [0, 0, 0, 0, 0, 0]
     user_data[0] = "None"  # mode - режим работы бота
