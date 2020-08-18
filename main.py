@@ -1,5 +1,3 @@
-# Главный код бота
-
 import telebot  # Модуль для работы с telegram ботами
 
 import mmbdatabase  # Модуль для работы с базой данных
@@ -52,7 +50,7 @@ def color_to_rgb(color):
 def create_mem_with_user_settings(message):
     """Создание мема с пользовательскими настройками"""
     data, reset = mmbfiles.read_data(message, bot.send_message, start)
-    mmbpicture.create_mem(message.chat.id, data[5], data[3], data[4])
+    mmbpicture.create_mem(message.chat.id, data[5], data[3], data[4], data[6])
 
 
 def send_mem(chat_id):
@@ -342,6 +340,25 @@ def send_template_finish_menu(chat_id):
     bot.send_message(chat_id, text=phrases.next_step, reply_markup=st_f_menu)
 
 
+def text_rotation_menu(chat_id):
+    """Меню выбора угла поворота текста"""
+    rtd_menu = telebot.types.InlineKeyboardMarkup()
+    # Добавляем все ф-ции в меню
+    degrees = constants.rotation_degrees
+    for i in range(len(degrees)):
+        rtd_menu.add(
+            telebot.types.InlineKeyboardButton(
+                text=str(degrees[i]) + "°",
+                callback_data=f'text_rotation_menu_{i + 1}'))
+    rtd_menu.add(
+        telebot.types.InlineKeyboardButton(
+            text=phrases.set_text_rotation_manually,
+            callback_data=f'text_rotation_menu_{len(degrees) + 1}'))
+    # Отправляем сообщение с инфой о меню и списком ф-ций
+    bot.send_message(chat_id, text=phrases.text_rotation_menu_title,
+                     reply_markup=rtd_menu)
+
+
 def main_menu(chat_id):
     """Главное меню бота"""
     m_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline клаву
@@ -419,10 +436,15 @@ def query_handler(call):
             user_data[4] = ['percent', 50, 50]
             user_data[0] = "None"
             user_data[1] = 0
-            user_data[2] = 6
-            bot.send_message(call.message.chat.id,
-                             text=get_current_text_style(call.message))
-            set_text_settings_menu(call.message.chat.id)
+
+            user_data[2] = 12
+            text_rotation_menu(call.message.chat.id)
+
+            # user_data[2] = 6
+            # bot.send_message(call.message.chat.id,
+            #                  text=get_current_text_style(call.message))
+            # set_text_settings_menu(call.message.chat.id)
+
         elif call.data == 'text_pos_menu_2':  # "Расположение текста вручную"
             user_data[0] = "get_text_pos"
             user_data[1] = 1
@@ -554,6 +576,21 @@ def query_handler(call):
                 call.message.chat.id,
                 phrases.ask_template_number(names.quantity_of_templates))
 
+    elif user_data[2] == 12:  # Меню выбора угла наклона текста
+        if (call.data.startswith("text_rotation_menu_")
+                and int(call.data[-1]) < 6):
+            user_data[6] = constants.rotation_degrees[int(call.data[-1]) - 1]
+
+            user_data[2] = 6
+            bot.send_message(call.message.chat.id,
+                             text=get_current_text_style(call.message))
+            set_text_settings_menu(call.message.chat.id)
+
+        elif int(call.data[-1]) == 6:
+            user_data[0] = "get_text_rotation"
+            user_data[1] = 0
+            bot.send_message(call.message.chat.id, phrases.ask_text_rotation)
+
     # Перезапись обновлённого списка с настройками пользователя
     mmbfiles.rewrite_data(call.message, user_data, bot.send_message, start)
 
@@ -583,13 +620,14 @@ def start(message):
     database.new_user(message)  # Обработка навого пользователя в базе данных
     mmbfiles.add_user_folder(user_id)  # Создание папки для данного пользователя
     # Инициализируем формат пользовательски настроек
-    user_data = [0, 0, 0, 0, 0, 0]
+    user_data = [0, 0, 0, 0, 0, 0, 0]
     user_data[0] = "None"  # mode - режим работы бота
     user_data[1] = 0  # step - номер шага в данном режиме работы бота
     user_data[2] = 0  # active_menu - активное в данный момент меню
     user_data[3] = constants.standard_text_setting  # text_style - стиль текста
     user_data[4] = constants.standard_text_position  # text_position
     user_data[5] = ''  # source_text - текст, который ввел пользователь
+    user_data[6] = 0  # text_rotation - угол поворота текста
     # Записываем в файл с пользовательскими настройками стандартные настройки
     mmbfiles.rewrite_data(message, user_data, bot.send_message, start)
     # Сообщение с приветствием
@@ -668,18 +706,17 @@ def processing_all_text_messages(message):
                              text=get_current_text_style(message))
             set_text_settings_menu(message.chat.id)
 
-    elif user_data[0] == "get_source":  # Режим получения исходников для мема
-        if user_data[1] == 1:
-            if 0 <= len(user_message) <= constants.max_mem_text_len:
-                user_data[0] = "None"
-                user_data[1] = 0
-                user_data[2] = 4
-                user_data[5] = user_message
-                text_pos_menu(message.chat.id)
-            else:
-                bot.send_message(message.chat.id,
-                                 text=phrases.max_text_len_info)
-                bot.send_message(message.chat.id, phrases.send_mem_text_to_me_2)
+    elif user_data[0] == "get_source" and user_data[1] == 1:
+        if 0 <= len(user_message) <= constants.max_mem_text_len:
+            user_data[0] = "None"
+            user_data[1] = 0
+            user_data[2] = 4
+            user_data[5] = user_message
+            text_pos_menu(message.chat.id)
+        else:
+            bot.send_message(message.chat.id,
+                             text=phrases.max_text_len_info)
+            bot.send_message(message.chat.id, phrases.send_mem_text_to_me_2)
 
     elif user_data[0] == "get_text_pos":  # Режим получения позиции текста
         if user_data[1] == 1:
@@ -715,16 +752,19 @@ def processing_all_text_messages(message):
                         text=phrases.successful_input)
                     user_data[0] = "None"
                     user_data[1] = 0
-                    user_data[2] = 6
                     user_data[4][1:] = x, y
                     if in_px:
                         user_data[4][0] = "px"
                     else:
                         user_data[4][0] = "percent"
-                    bot.send_message(
-                        message.chat.id,
-                        text=get_current_text_style(message))
-                    set_text_settings_menu(message.chat.id)
+
+                    # user_data[2] = 6
+                    # bot.send_message(
+                    #     message.chat.id,
+                    #     text=get_current_text_style(message))
+                    # set_text_settings_menu(message.chat.id)
+                    user_data[2] = 12
+                    text_rotation_menu(message.chat.id)
                 else:
                     bot.send_message(
                         message.chat.id,
@@ -769,6 +809,17 @@ def processing_all_text_messages(message):
             user_data[2] = 11
             user_data[0] = "None"
             send_template_finish_menu(message.chat.id)
+        else:
+            bot.send_message(message.chat.id, text=phrases.invalid_input)
+
+    elif user_data[0] == "get_text_rotation":  # Режим получ. наклона текста
+        correct = user_message.isdigit()
+        if correct:
+            user_data[6] = int(user_message)
+            user_data[2] = 6
+            bot.send_message(message.chat.id,
+                             text=get_current_text_style(message))
+            set_text_settings_menu(message.chat.id)
         else:
             bot.send_message(message.chat.id, text=phrases.invalid_input)
 

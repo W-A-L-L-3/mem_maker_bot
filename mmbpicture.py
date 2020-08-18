@@ -7,7 +7,7 @@ pygame.init()  # Инициализация модуля pygame
 pygame_fonts = pygame.font.get_fonts()
 
 
-def create_mem(chat_id, text, text_style, text_position):
+def create_mem(chat_id, text, text_style, text_position, text_rotation):
     """
     Наложение текста с заданным пользователем стилем на тестовую картинку.
     chat_id - id пользователя / чата
@@ -16,9 +16,14 @@ def create_mem(chat_id, text, text_style, text_position):
         цвет текста в rgb)
     text_position - позиция текста в формате (format, x, y),
         format - рх / percent, x и y - координаты текста в int
+    text_rotation - угол поворота текста
     """
     font = pygame.font.SysFont(*text_style[:-1])  # Создание шрифта
     text_object = font.render(text, 1, text_style[-1])  # Объект текста
+
+    rotated_text = pygame.transform.rotate(text_object, -text_rotation)
+    rotated_text_rect = rotated_text.get_rect()
+
     image = pygame.image.load(f"users/{chat_id}/img/source_picture.jpg")
     size = image.get_size()  # Размеры картинки
     screen = pygame.Surface(size)  # Рабочее поле с размерами картинки
@@ -34,7 +39,11 @@ def create_mem(chat_id, text, text_style, text_position):
     else:  # Если произошла какая-то ошибка, format != "px" или "percent"
         raise ValueError("Ошибка в формате координат")
 
-    image.blit(text_object, (i, j))  # Отрисовка текста на картинке
+    rotated_text_rect.center = (i, j)
+
+    image.blit(rotated_text,
+               rotated_text_rect)  # Отрисовка текста на картинке 1
+    image.blit(text_object, (i, j))  # Отрисовка текста на картинке 2
     screen.blit(image, (0, 0))  # Картинка на всё рабочее поле
 
     # Сохраняем всё рабочее поле в новый файл
