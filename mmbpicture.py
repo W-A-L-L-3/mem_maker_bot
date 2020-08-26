@@ -22,7 +22,6 @@ def create_mem(chat_id, text, text_style, text_position, text_rotation):
     text_object = font.render(text, 1, text_style[-1])  # Объект текста
 
     rotated_text = pygame.transform.rotate(text_object, -text_rotation)
-    rotated_text_rect = rotated_text.get_rect()
 
     image = pygame.image.load(f"users/{chat_id}/img/source_picture.jpg")
     size = image.get_size()  # Размеры картинки
@@ -34,16 +33,12 @@ def create_mem(chat_id, text, text_style, text_position, text_rotation):
         i, j = x, y  # Координаты верхнего левого угла текста
     elif coords_format == "percent":  # Если x и y заданы в %
         # Координаты центра текста
-        i = (size[0] * x) // 100 - text_object.get_width() // 2
-        j = (size[1] * y) // 100 - text_object.get_height() // 2
+        i = (size[0] * x) // 100 - rotated_text.get_width() // 2
+        j = (size[1] * y) // 100 - rotated_text.get_height() // 2
     else:  # Если произошла какая-то ошибка, format != "px" или "percent"
         raise ValueError("Ошибка в формате координат")
 
-    rotated_text_rect.center = (i, j)
-
-    image.blit(rotated_text,
-               rotated_text_rect)  # Отрисовка текста на картинке 1
-    image.blit(text_object, (i, j))  # Отрисовка текста на картинке 2
+    image.blit(rotated_text, (i, j))  # Отрисовка текста на картинке
     screen.blit(image, (0, 0))  # Картинка на всё рабочее поле
 
     # Сохраняем всё рабочее поле в новый файл
