@@ -1,6 +1,5 @@
 import telebot  # Модуль для работы с telegram ботами
 
-import mmbdatabase  # Модуль для работы с базой данных
 import mmbpicture  # Модуль для создания мема
 import mmbfiles  # Модуль для работы с файлами
 
@@ -11,7 +10,6 @@ import names  # Файл с названиями пикч и шаблонов
 
 bot = telebot.TeleBot(TOKEN)  # Создаём бота
 
-database = mmbdatabase.Database(file_name="database.xlsx")  # Объект базы
 
 # Клавиатура да / нет
 yesno_keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2,
@@ -615,9 +613,7 @@ def start(message):
     3) Создаём папку пользователя
     4) Сохраняем туда стандартные настройки
     """
-    global database
     user_id = message.chat.id  # id пользователя (чата)
-    database.new_user(message)  # Обработка навого пользователя в базе данных
     mmbfiles.add_user_folder(user_id)  # Создание папки для данного пользователя
     # Инициализируем формат пользовательски настроек
     user_data = [0, 0, 0, 0, 0, 0, 0]
