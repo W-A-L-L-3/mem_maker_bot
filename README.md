@@ -1,4 +1,4 @@
-# MemMakerBot
+﻿# MemMakerBot
 
 Бот в telegram, для создания мемов.
 
@@ -13,4 +13,4 @@
 ## Авторы:
 + Yu-Leo
 + kholevenkovav
-+ Mi-s-h-A
++ ASDF2357
