@@ -23,6 +23,6 @@
 + Добавлена работа с "базой данных" - таблица в excel, куда записывается id, имя, фамилия, и ник пользователя + время, когда он начал с ботом общение (написал /start). Есть файл, который очищает эту таблицу
 
 ## Авторы:
-+ Yu-Leo
-+ kholevenkovav
-+ ASDF2357
++ [Yu-Leo](https://github.com/Yu-Leo)
++ [kholevenkovav](https://github.com/kholevenkovav) 
++ [ASDF2357](https://github.com/ASDF2357) 
