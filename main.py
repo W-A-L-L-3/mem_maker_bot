@@ -10,7 +10,6 @@ import names  # Файл с названиями пикч и шаблонов
 
 bot = telebot.TeleBot(TOKEN)  # Создаём бота
 
-
 # Клавиатура да / нет
 yesno_keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2,
                                                    resize_keyboard=True)
@@ -18,7 +17,6 @@ yesno_keyboard.add(telebot.types.KeyboardButton(text=phrases.yes),
                    telebot.types.KeyboardButton(text=phrases.no))
 
 
-# =====================ФУНКЦИИ=======================
 def is_2_digit(string):
     """Проверка на корректность ввода. Должны быть введены 2 целых числа"""
     lst = string.strip().split()
@@ -409,8 +407,9 @@ def query_handler(call):
             user_data[0] = "send_template"  # Активируем режим выбора шаблона
             user_data[2] = -1  # Блокируем все меню
         elif call.data == 'picture_source_menu_3':  # Пункт "Загрузить новое"
-            mmbfiles.del_user_img(call.message.chat.id,
-                                  "source")  # Удаляем старый исходник
+            if mmbfiles.check_previous_img(call.message.chat.id):
+                mmbfiles.del_user_img(call.message.chat.id,
+                                      "source")  # Удаляем старый исходник
             user_data[0] = "get_source"  # Актив. режим получения исходников
             user_data[1] = 2  # Ввод текста и картинки пользователем
             user_data[2] = -1  # Блокируем все меню
@@ -437,11 +436,6 @@ def query_handler(call):
 
             user_data[2] = 12
             text_rotation_menu(call.message.chat.id)
-
-            # user_data[2] = 6
-            # bot.send_message(call.message.chat.id,
-            #                  text=get_current_text_style(call.message))
-            # set_text_settings_menu(call.message.chat.id)
 
         elif call.data == 'text_pos_menu_2':  # "Расположение текста вручную"
             user_data[0] = "get_text_pos"
@@ -672,9 +666,9 @@ def handle_start_help(message):
 def processing_all_text_messages(message):
     """Обработка всех текстовых сообщений"""
     user_data, reset = mmbfiles.read_data(message, bot.send_message, start)
-    if reset:  # Если настройки были сброшены, обнуляем нажатие на кнопку
-        message = "reset"
     user_message = message.text  # Сообщение пользователя
+    if reset:  # Если настройки были сброшены, обнуляем нажатие на кнопку
+        user_message = "reset"
 
     if user_data[0] == "font_settings":  # Режим ввода параметров шрифта
         user_message = user_message.lower()
@@ -753,12 +747,6 @@ def processing_all_text_messages(message):
                         user_data[4][0] = "px"
                     else:
                         user_data[4][0] = "percent"
-
-                    # user_data[2] = 6
-                    # bot.send_message(
-                    #     message.chat.id,
-                    #     text=get_current_text_style(message))
-                    # set_text_settings_menu(message.chat.id)
                     user_data[2] = 12
                     text_rotation_menu(message.chat.id)
                 else:
@@ -820,7 +808,7 @@ def processing_all_text_messages(message):
             bot.send_message(message.chat.id, text=phrases.invalid_input)
 
     else:  # Если введено непонятно что
-        if message != "reset":  # Если данные не были сброшены
+        if user_message != "reset":  # Если данные не были сброшены
             bot.send_message(message.chat.id, phrases.not_understand)
 
     mmbfiles.rewrite_data(message, user_data, bot.send_message, start)
