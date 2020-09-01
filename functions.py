@@ -44,6 +44,6 @@ def fr(user_text, max_length):
 
 if __name__ == "__main__":
     text = input()  # Строка, которая подаётся на ввод
-    max_len = int(input())  # Каждая строка в выходном списке не длиннее
+    max_len = int(input())  # Каждая строка в выходном списке не длиннее введённого значения
     print(fragmentation(text, max_len))
     print(fr(text, max_len))

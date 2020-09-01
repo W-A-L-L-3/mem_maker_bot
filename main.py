@@ -18,7 +18,7 @@ yesno_keyboard.add(telebot.types.KeyboardButton(text=phrases.yes),
 
 
 def is_2_digit(string):
-    """Проверка на корректность ввода. Должны быть введены 2 целых числа"""
+    """Проверка на корректность ввода. Должно быть введено 2 целых числа"""
     lst = string.strip().split()
     correct = len(lst) == 2 and len(list(filter(str.isdigit, lst))) == 2
     if correct:
@@ -29,7 +29,7 @@ def is_2_digit(string):
 
 
 def color_to_rgb(color):
-    """Проверка строки с rgb кодировкой и перевод цвета в кортеж из 3х знач."""
+    """Проверка строки с rgb-кодировкой и перевод цвета в кортеж из 3х знач."""
 
     def check(x):
         return x.isdigit() and 0 <= int(x) <= 255
@@ -57,7 +57,7 @@ def send_mem(chat_id):
 
 def send_picture(chat_id, folder_name, name):
     """
-    Отправка файла с пикчей или шаблоном, в зависимости от folder_name
+    Отправка файла с пикчей или шаблоном в зависимости от folder_name
     folder_name - имя папки (pictures / templates)
     name - имя файла (без порядкового номера и расширения)
     """
@@ -68,8 +68,8 @@ def send_picture(chat_id, folder_name, name):
 # ======================ЗАПРОСЫ ПАРАМЕТРОВ ТЕКСТА========================
 def get_font_name(message, user_message, step):
     """Запрос названия шрифта"""
-    # Есть ли введённого шрифта нет в наборе шрифтов pygame, или шрифт задан
-    # некорректным номером из списка шрифтов
+    # Если введённого шрифта нет в наборе шрифтов pygame,или шрифт задан
+    # или шрифт задан некорректным номером из списка шрифтов
     not_name = (not user_message.isdigit() and
                 user_message not in mmbpicture.pygame_fonts)
     not_num = (user_message.isdigit() and
@@ -102,7 +102,7 @@ def get_font_size(message, user_message, step):
         bot.send_message(message.chat.id, phrases.invalid_input)
         return -1, step
 
-    if step == 2:  # Режим полной настройки - след. вопрос и вкл. yesno клаву
+    if step == 2:  # Режим полной настройки - след. вопрос и вкл. yesno-клаву
         bot.send_message(message.chat.id, text=phrases.ask_font_bold,
                          reply_markup=yesno_keyboard)
     else:  # Режим индивидуальной настройки - изменения применены
@@ -120,7 +120,7 @@ def get_font_bold(message, user_message, step):
 
     if step == 3:  # Режим полной настройки - след. вопрос
         bot.send_message(message.chat.id, phrases.ask_font_italic)
-    else:  # Режим индивид. настройки - изменения применены и выкл. yesno клаву
+    else:  # Режим индивид. настройки - изменения применены и выкл. yesno-клаву
         bot.send_message(message.chat.id, phrases.successful_changes,
                          reply_markup=telebot.types.ReplyKeyboardRemove())
 
@@ -128,7 +128,7 @@ def get_font_bold(message, user_message, step):
 
 
 def get_font_italic(message, user_message, step):
-    """Запрос курсивности (если есть такое слово) шрифта"""
+    """Запрос курсивности шрифта"""
     # Если ввод некорректен
     if user_message not in (phrases.yes, phrases.no):
         bot.send_message(message.chat.id, phrases.invalid_input)
@@ -138,7 +138,7 @@ def get_font_italic(message, user_message, step):
         bot.send_message(message.chat.id, phrases.ask_text_color,
                          reply_markup=telebot.types.ReplyKeyboardRemove())
         text_color_menu(message.chat.id)
-    else:  # Режим индивид. настройки - изменения применены и выкл. yesno клаву
+    else:  # Режим индивид. настройки - изменения применены и выкл. yesno-клаву
         bot.send_message(message.chat.id, phrases.successful_changes,
                          reply_markup=telebot.types.ReplyKeyboardRemove())
 
@@ -162,7 +162,7 @@ def get_text_color(message, user_message, step):
 
 
 def rgb_to_name(rgb):
-    """Возвращает название цвета по его rgb кодировке"""
+    """Возвращает название цвета по его rgb-кодировке"""
     convert_dict = {(0, 0, 0): phrases.text_colors_list[0][2:],
                     (255, 255, 255): phrases.text_colors_list[1][2:],
                     (255, 0, 0): phrases.text_colors_list[2][2:],
@@ -192,7 +192,7 @@ def get_current_text_style(message):
 
 def text_color_menu(chat_id):
     """Меню настройки цвета текста"""
-    tc_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline клаву
+    tc_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline-клаву
     # Добавляем все ф-ции в меню
     for i in range(len(phrases.text_colors_list)):
         tc_menu.add(telebot.types.InlineKeyboardButton(
@@ -205,7 +205,7 @@ def text_color_menu(chat_id):
 
 def change_text_settings_menu(chat_id):
     """Меню настройки стиля текста вручную"""
-    cts_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline клаву
+    cts_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline-клаву
     # Добавляем все ф-ции в меню
     for i in range(len(phrases.change_text_settings_list)):
         cts_menu.add(telebot.types.InlineKeyboardButton(
@@ -223,7 +223,7 @@ def pack_choice_menu(chat_id):
     with open("img/five_packs.jpg", 'rb') as photo:
         bot.send_photo(chat_id, photo)
 
-    pc_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline клаву
+    pc_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline-клаву
     # Добавляем все ф-ции в меню
     n = 5
     for i in range(1, n + 1):
@@ -240,7 +240,7 @@ def pack_choice_menu(chat_id):
 
 def set_text_settings_menu(chat_id):
     """Меню выбора способа настройки стиля текста, который будет использован"""
-    sts_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline клаву
+    sts_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline-клаву
     # Добавляем все ф-ции в меню
     for i in range(len(phrases.set_text_settings_list)):
         sts_menu.add(telebot.types.InlineKeyboardButton(
@@ -253,7 +253,7 @@ def set_text_settings_menu(chat_id):
 
 def text_pos_menu(chat_id):
     """Меню настройки расположения текста"""
-    tp_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline клаву
+    tp_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline-клаву
     # Добавляем все ф-ции в меню
     for i in range(len(phrases.text_pos_menu_list)):
         tp_menu.add(telebot.types.InlineKeyboardButton(
@@ -295,7 +295,7 @@ def picture_search_message(chat_id):
     msg = ''
     for name in names.pictures:
         msg += name
-    bot.send_message(chat_id, text=msg)  # Вывод списка названий
+    bot.send_message(chat_id, text=msg)  # Вывод нумерованного списка названий
 
 
 def template_search_message(chat_id):
@@ -305,12 +305,12 @@ def template_search_message(chat_id):
     msg = ''
     for name in names.templates:
         msg += name
-    bot.send_message(chat_id, text=msg)  # Вывод списка названий
+    bot.send_message(chat_id, text=msg)  # Вывод нумерованного списка названий
 
 
 def send_picture_finish_menu(chat_id):
     """Меню после отправки пикчи"""
-    sp_f_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline клаву
+    sp_f_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline-клаву
     # Добавляем все ф-ции в меню
     sp_f_menu.add(telebot.types.InlineKeyboardButton(
         text=phrases.sp_finish_continue,
@@ -324,7 +324,7 @@ def send_picture_finish_menu(chat_id):
 
 def send_template_finish_menu(chat_id):
     """Меню после отправки шаблона"""
-    st_f_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline клаву
+    st_f_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline-клаву
     # Добавляем все ф-ции в меню
     st_f_menu.add(telebot.types.InlineKeyboardButton(
         text=phrases.use_this_template,
@@ -357,7 +357,7 @@ def text_rotation_menu(chat_id):
 
 def main_menu(chat_id):
     """Главное меню бота"""
-    m_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline клаву
+    m_menu = telebot.types.InlineKeyboardMarkup()  # Создаём inline-клаву
     # Добавляем все ф-ции в меню
     for i in range(len(phrases.main_menu_list)):
         m_menu.add(telebot.types.InlineKeyboardButton(
@@ -549,7 +549,7 @@ def query_handler(call):
             set_text_settings_menu(call.message.chat.id)
 
     elif user_data[2] == 10:
-        if call.data == "show_fonts_list":  # Кнопка "показать доступные шрифты"
+        if call.data == "show_fonts_list":  # Кнопка "Показать доступные шрифты"
             message = f"{phrases.available_fonts_list}:\n"
             for i in range(constants.quantity_of_fonts):  # Первые n шрифтов
                 message += f"{i + 1}) {mmbpicture.pygame_fonts[i]}\n"
@@ -609,14 +609,14 @@ def start(message):
     """
     user_id = message.chat.id  # id пользователя (чата)
     mmbfiles.add_user_folder(user_id)  # Создание папки для данного пользователя
-    # Инициализируем формат пользовательски настроек
+    # Инициализируем формат пользовательских настроек
     user_data = [0, 0, 0, 0, 0, 0, 0]
     user_data[0] = "None"  # mode - режим работы бота
     user_data[1] = 0  # step - номер шага в данном режиме работы бота
     user_data[2] = 0  # active_menu - активное в данный момент меню
     user_data[3] = constants.standard_text_setting  # text_style - стиль текста
     user_data[4] = constants.standard_text_position  # text_position
-    user_data[5] = ''  # source_text - текст, который ввел пользователь
+    user_data[5] = ''  # source_text - текст, который ввёл пользователь
     user_data[6] = 0  # text_rotation - угол поворота текста
     # Записываем в файл с пользовательскими настройками стандартные настройки
     mmbfiles.rewrite_data(message, user_data, bot.send_message, start)

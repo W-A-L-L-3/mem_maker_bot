@@ -38,7 +38,7 @@ def rewrite_data(message, user_data, send_msg_func, start_func):
 
 def del_user_img(chat_id, name):
     """
-    Удаление картинки пользователя (answer или source, в зависимости от name)
+    Удаление картинки пользователя (answer или source в зависимости от name)
     name - answer / source
     """
     os.remove(f"users/{chat_id}/img/{name}_picture.jpg")
@@ -73,7 +73,7 @@ def clear_all_users_folders(del_data=False):
     """
 
     def check(name):
-        """Проеварка на то, является ли объект с данным путём папкой"""
+        """Проварка на то, является ли объект с данным путём папкой"""
         return os.path.isdir(f"./users/{name}")
 
     e = 0  # Счётчик ошибок
